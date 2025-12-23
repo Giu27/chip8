@@ -35,7 +35,17 @@ Chip8::Chip8(){
 
 }
 
-void Chip8::load_rom(std::string path){ //Reads bytes from the rom and load it in memory
+void Chip8::update_surf(SDL_Surface *surface) {
+	uint32_t* pixels = (uint32_t*)surface->pixels;
+    for (int y = 0; y < surface->h; y++) {
+        for (int x = 0; x < surface->w; x++) {
+            uint32_t color = (this->display[y][x]) ? 0xFFFFFFFF : 0xFF000000;
+            pixels[y * (surface->pitch / 4) + x] = color;
+        }
+    }
+}
+
+void Chip8::load_rom(std::string path) { //Reads bytes from the rom and load it in memory
     std::ifstream file(path, std::ios::in | std::ios::binary | std::ios::ate);
     if (!file){
         std::cerr<< "Error loading the ROM!";

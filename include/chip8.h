@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <SDL3\SDL.h>
 #include <string>
 class Chip8{
     private:
@@ -13,9 +14,10 @@ class Chip8{
 
         uint8_t delay_timer, sound_timer; //timers
 
-        bool display[64 * 32]; //display
+        bool display[32][64]; //display
     
     public:
         Chip8();
+        void update_surf(SDL_Surface *surface);
         void load_rom(std::string path);
 };
