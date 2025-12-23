@@ -15,9 +15,11 @@ class Chip8{
         uint8_t delay_timer, sound_timer; //timers
 
         bool display[32][64]; //display
+        bool keystate[16]; // hex keypad
     
     public:
         Chip8();
         void update_surf(SDL_Surface *surface);
         void load_rom(std::string path);
+        void set_keypad_value(int index, int val);
 };

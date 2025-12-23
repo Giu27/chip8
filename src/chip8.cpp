@@ -63,3 +63,7 @@ void Chip8::load_rom(std::string path) { //Reads bytes from the rom and load it 
 		RAM[START_ADDRESS + i] = buffer[i];
 	}
 }
+
+void Chip8::set_keypad_value(int index, int val) {
+    this->keystate[index] = val;
+}

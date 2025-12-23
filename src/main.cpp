@@ -8,6 +8,30 @@ static SDL_Renderer *renderer = NULL;
 static SDL_Surface* surface;
 static Chip8 chip8;
 
+int scancode_mask(SDL_Scancode scancode) {
+    int index;
+    switch (scancode) {
+        case SDL_SCANCODE_1: index = 1; break;
+        case SDL_SCANCODE_2: index = 2; break;
+        case SDL_SCANCODE_3: index = 3; break;
+        case SDL_SCANCODE_4: index = 12; break;
+        case SDL_SCANCODE_Q: index = 4; break;
+        case SDL_SCANCODE_W: index = 5; break;
+        case SDL_SCANCODE_E: index = 6; break;
+        case SDL_SCANCODE_R: index = 13; break;
+        case SDL_SCANCODE_A: index = 7; break;
+        case SDL_SCANCODE_S: index = 8; break;
+        case SDL_SCANCODE_D: index = 9; break;
+        case SDL_SCANCODE_F: index = 14; break;
+        case SDL_SCANCODE_Z: index = 10; break;
+        case SDL_SCANCODE_X: index = 0; break;
+        case SDL_SCANCODE_C: index = 11; break;
+        case SDL_SCANCODE_V: index = 15; break;
+        default: return 0;
+    }
+    return index;
+}
+
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 {
     SDL_SetAppMetadata("CHIP-8 Interpreter", "0.1", "it.Giu27");
@@ -36,8 +60,17 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 {
-    if (event->type == SDL_EVENT_QUIT) {
-        return SDL_APP_SUCCESS;  
+    switch (event->type) {
+        case SDL_EVENT_QUIT:
+            return SDL_APP_SUCCESS;
+
+        case SDL_EVENT_KEY_DOWN:
+            chip8.set_keypad_value(scancode_mask(event->key.scancode), true);
+            break;
+        
+        case SDL_EVENT_KEY_UP: 
+            chip8.set_keypad_value(scancode_mask(event->key.scancode), false);
+            break;
     }
     return SDL_APP_CONTINUE;  
 }
