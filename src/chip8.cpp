@@ -237,15 +237,64 @@ void Chip8::cycle(bool original = true){
                     }
                     break;
                 default:
-                    std::cout<<(first_nibble)<<(nn)<<std::endl;
+                    std::cout<<(first_nibble)<<"X"<<(nn)<<std::endl;
                     break;
             }
             break;
         case 0xF:
-            std::cout<<(first_nibble)<<std::endl;
+            switch (nn) {
+                case 0x07: //set Vx to delay timer
+                    V[x] = delay_timer;
+                    break;
+                case 0x15: //set delay timer to Vx
+                    delay_timer = V[x]; 
+                    break;
+                case 0x18: //set sound timer to Vx
+                    sound_timer = V[x];
+                    break;
+                case 0x1E: //add to index
+                    if (I + V[x] >= 0x1000 && !original){
+                        V[0xF] = 1;
+                    }
+                    I += V[x];
+                    break;
+                case 0x0A: { //get key
+                    bool key_pressed = false;
+                    for (int i = 0; i < 16; i++) {
+                        if (keystate[i]) {
+                            key_pressed = true;
+                            V[x] = i;
+                        }
+                    }
+                    if (!key_pressed) {
+                        PC -= 2;
+                    }
+                    break;
+                }
+                case 0x29: //font character
+                    I = FONT_START_ADDRESS + V[x] * 0x5;
+                    break;
+                case 0x33: //binary-coded decimal conversion
+                    RAM[I] =  V[x] / 100;
+                    RAM[I + 1] = (V[x] / 10) % 10;
+                    RAM[I + 2] = (V[x] % 100) % 10;
+                    break;
+                default:
+                    std::cout<<(first_nibble)<<"X"<<(nn)<<std::endl;
+                    break;
+                }
             break;
         default:
             std::cout<<"Default";
             break;
+    }
+}
+
+void Chip8::decrement_timers() {
+    if (delay_timer > 0) {
+        delay_timer--;
+    }
+    if (sound_timer > 0) {
+        sound_timer--;
     }
 }

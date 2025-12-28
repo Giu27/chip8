@@ -26,4 +26,5 @@ class Chip8{
         void set_keypad_value(int index, int val);
         int extract_nibbles(int opcode, int bits, int val_to_binary_and);
         void cycle(bool original);
+        void decrement_timers();
 };

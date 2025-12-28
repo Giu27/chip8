@@ -10,6 +10,10 @@ static SDL_Surface* surface;
 static Chip8 chip8;
 static bool original;
 
+const int FPS = 60;
+const int TICK_PER_FRAME = 1000 / FPS;
+const int INSTRUCTIONS_PER_FRAME = 11;
+
 int scancode_mask(SDL_Scancode scancode) {
     int index;
     switch (scancode) {
@@ -92,7 +96,12 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 
 SDL_AppResult SDL_AppIterate(void *appstate)
 {   
-    chip8.cycle(original);
+    uint32_t start_tick = SDL_GetTicks();
+    for (int i = 0; i < INSTRUCTIONS_PER_FRAME; i++) {
+       chip8.cycle(original); 
+    }
+
+    chip8.decrement_timers();
 
     chip8.update_surf(surface);
 
@@ -111,6 +120,11 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     SDL_RenderPresent(renderer);
 
     SDL_DestroyTexture(texture);
+
+    uint32_t frame_time = SDL_GetTicks() - start_tick;
+    if (frame_time < TICK_PER_FRAME) {
+        SDL_Delay(TICK_PER_FRAME - frame_time);
+    }
 
     return SDL_APP_CONTINUE; 
 }
