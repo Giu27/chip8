@@ -33,6 +33,7 @@ Chip8::Chip8(){
         RAM[FONT_START_ADDRESS + i] = fontset[i];
     }
 
+    srand(time(0));
 }
 
 void Chip8::update_surf(SDL_Surface *surface) {
@@ -184,14 +185,18 @@ void Chip8::cycle(bool original = true){
                 PC += 2;
             }
             break;
-        case 0xA:
+        case 0xA: //set Index Register
             I = nnn;
             break;
-        case 0xB:
-            std::cout<<(first_nibble)<<std::endl;
+        case 0xB: //jump with offset
+            if (original){
+                PC = nnn + V[0];
+            } else {
+                PC = nnn + V[x];
+            }
             break;
-        case 0xC:
-            std::cout<<(first_nibble)<<std::endl;
+        case 0xC: //Generate a random number
+            V[x] = rand() & nn;
             break;
         case 0xD: { //Draws to the screen
             V[0xF] = 0;
@@ -219,8 +224,22 @@ void Chip8::cycle(bool original = true){
             }
             break;
         }
-        case 0xE:
-            std::cout<<(first_nibble)<<std::endl;
+        case 0xE: 
+            switch (nn) {
+                case 0x9E: //skip if pressed
+                    if (keystate[V[x]]){
+                        PC += 2;
+                    }
+                    break;
+                case 0xA1: //skip if not pressed
+                    if (!keystate[V[x]]){
+                        PC += 2;
+                    }
+                    break;
+                default:
+                    std::cout<<(first_nibble)<<(nn)<<std::endl;
+                    break;
+            }
             break;
         case 0xF:
             std::cout<<(first_nibble)<<std::endl;
