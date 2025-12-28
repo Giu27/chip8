@@ -78,6 +78,8 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 
 SDL_AppResult SDL_AppIterate(void *appstate)
 {   
+    chip8.cycle();
+
     chip8.update_surf(surface);
 
     SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
@@ -102,5 +104,5 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result)
 {
-    
+    SDL_DestroySurface(surface);
 }

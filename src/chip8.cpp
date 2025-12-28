@@ -67,3 +67,112 @@ void Chip8::load_rom(std::string path) { //Reads bytes from the rom and load it 
 void Chip8::set_keypad_value(int index, int val) {
     this->keystate[index] = val;
 }
+
+int Chip8::extract_nibbles(int opcode, int bits, int val_to_binary_and = 0xFFFF){
+    return ((opcode & val_to_binary_and) >> bits);
+}
+
+void Chip8::cycle(){
+    opcode = ((uint16_t)RAM[PC] << 8) | RAM[PC + 1];
+    int first_nibble = extract_nibbles(opcode, 12, 0xF000);
+    int x = extract_nibbles(opcode, 8, 0x0F00); //Look up a register
+    int y = extract_nibbles(opcode, 4, 0x00F0); //Look up a register
+    int n = extract_nibbles(opcode, 0, 0x000F); //4 bit number
+    int nn = extract_nibbles(opcode, 0, 0x00FF); //8 bit number
+    int nnn = extract_nibbles(opcode, 0, 0x0FFF); //12 bit memory address
+    PC += 2;
+    
+    switch(first_nibble){
+        case 0x0:
+            switch (opcode) {
+                case 0x00E0: //Clean the screen
+                    memset(display, 0, sizeof(display));
+                    break;
+                case 0x00EE: //return from the subroutine
+                    PC = stack[sp];
+                    sp--;
+            }
+            break;
+        case 0x1: //jump to nnn
+            PC = nnn;
+            break;
+        case 0x2: //call a subroutine in nnn
+            stack[sp] = PC;
+            PC = nnn;
+            break;
+        case 0x3: //skip next instruction if Vx = nn
+            if (V[x] == nn) {
+                PC += 2;
+            }
+            break;
+        case 0x4:
+            if (V[x] != nn) { //skip next instruction if Vx != nn
+                PC += 2;
+            }
+            break;
+        case 0x5:
+            if (V[x] == V[y]) { //skip next instruction if Vx = Vy
+                PC += 2;
+            }
+            break;
+        case 0x6:
+            V[x] = nn;
+            break;
+        case 0x7:
+            V[x] += nn;
+            break;
+        case 0x8:
+            std::cout<<(first_nibble)<<std::endl;
+            break;
+            std::cout<<(first_nibble)<<std::endl;
+        case 0x9: //skip next instruction if Vx != Vy
+            if (V[x] != V[y]) {
+                PC += 2;
+            }
+            break;
+        case 0xA:
+            I = nnn;
+            break;
+        case 0xB:
+            std::cout<<(first_nibble)<<std::endl;
+            break;
+        case 0xC:
+            std::cout<<(first_nibble)<<std::endl;
+            break;
+        case 0xD: { //Draws to the screen
+            V[0xF] = 0;
+            for (int i = 0; i < n; i++) {
+                uint8_t sprite_byte = RAM[I + i];
+    
+                int x_coord = V[x] & 63; 
+                int y_coord = (V[y] + i) & 31; 
+
+                for (int j = 0; j < 8; j++) {
+                    if ((sprite_byte & (0x80 >> j)) != 0) {
+                        if (x_coord >= 64) {
+                            break; 
+                        }
+
+                        if (display[y_coord][x_coord] == true) {
+                            display[y_coord][x_coord] = false;
+                            V[0xF] = 1; 
+                        } else {
+                            display[y_coord][x_coord] = true;
+                        }
+                }   
+                x_coord++;
+                }
+            }
+            break;
+        }
+        case 0xE:
+            std::cout<<(first_nibble)<<std::endl;
+            break;
+        case 0xF:
+            std::cout<<(first_nibble)<<std::endl;
+            break;
+        default:
+            std::cout<<"Default";
+            break;
+    }
+}

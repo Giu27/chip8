@@ -14,6 +14,8 @@ class Chip8{
 
         uint8_t delay_timer, sound_timer; //timers
 
+        uint16_t opcode;
+
         bool display[32][64]; //display
         bool keystate[16]; // hex keypad
     
@@ -22,4 +24,6 @@ class Chip8{
         void update_surf(SDL_Surface *surface);
         void load_rom(std::string path);
         void set_keypad_value(int index, int val);
+        int extract_nibbles(int opcode, int bits, int val_to_binary_and);
+        void cycle();
 };
