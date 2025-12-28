@@ -72,14 +72,14 @@ int Chip8::extract_nibbles(int opcode, int bits, int val_to_binary_and = 0xFFFF)
     return ((opcode & val_to_binary_and) >> bits);
 }
 
-void Chip8::cycle(){
+void Chip8::cycle(bool original = true){
     opcode = ((uint16_t)RAM[PC] << 8) | RAM[PC + 1];
     int first_nibble = extract_nibbles(opcode, 12, 0xF000);
-    int x = extract_nibbles(opcode, 8, 0x0F00); //Look up a register
-    int y = extract_nibbles(opcode, 4, 0x00F0); //Look up a register
-    int n = extract_nibbles(opcode, 0, 0x000F); //4 bit number
-    int nn = extract_nibbles(opcode, 0, 0x00FF); //8 bit number
-    int nnn = extract_nibbles(opcode, 0, 0x0FFF); //12 bit memory address
+    int x = extract_nibbles(opcode, 8, 0x0F00); //Look up a register, second nibble
+    int y = extract_nibbles(opcode, 4, 0x00F0); //Look up a register, third nibble
+    int n = extract_nibbles(opcode, 0, 0x000F); //4 bit number, fourth nibble
+    int nn = extract_nibbles(opcode, 0, 0x00FF); //8 bit number, third and fourth nibble
+    int nnn = extract_nibbles(opcode, 0, 0x0FFF); //12 bit memory address, second, third and fourth nibble
     PC += 2;
     
     switch(first_nibble){
@@ -122,7 +122,61 @@ void Chip8::cycle(){
             V[x] += nn;
             break;
         case 0x8:
-            std::cout<<(first_nibble)<<std::endl;
+            switch (n){
+                case 0: //Set Vx to Vy
+                    V[x] = V[y];
+                    break;
+                case 1: //Binary Or
+                    V[x] = V[x] | V[y];
+                    break;
+                case 2: //Binary And
+                    V[x] = V[x] & V[y];
+                    break;
+                case 3: //Binary Xor
+                    V[x] = V[x] ^ V[y];
+                    break;
+                case 4: //Add
+                    if (V[x] + V[y] > 255){
+                        V[0xF] = 1;
+                    } else {
+                        V[0xF] = 0;
+                    }
+                    V[x] = V[x] + V[y];
+                    break;
+                case 5: //Subtract Vy from Vx
+                    if (V[x] > V[y]) {
+                        V[0xF] = 1;
+                    } else {
+                        V[0xF] = 0;
+                    }
+                    V[x] = V[x] - V[y];
+                    break;
+                case 7: //Subtract Vx from Vy
+                    if (V[y] > V[x]) {
+                        V[0xF] = 1;
+                    } else {
+                        V[0xF] = 0;
+                    }
+                    V[x] = V[y] - V[x];
+                    break;
+                case 6: //Shifts 1 bit to the right
+                    if (original){
+                        V[x] = V[y];
+                    }
+                    V[0xF] = V[x] & 0x1;
+                    V[x] = V[x] >> 1;
+                    break;
+                case 0xE: //Shits 1 bit to the left
+                    if (original){
+                        V[x] = V[y];
+                    }
+                    V[0xF] = V[x] & 0x1;
+                    V[x] = V[x] << 1;
+                    break;
+                default:
+                    std::cout<<(first_nibble)<<"XY"<<(n)<<std::endl;
+                    break;
+            }
             break;
             std::cout<<(first_nibble)<<std::endl;
         case 0x9: //skip next instruction if Vx != Vy

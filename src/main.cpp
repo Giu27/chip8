@@ -1,3 +1,4 @@
+#include <iostream>
 #include <chip8.h>
 #define SDL_MAIN_USE_CALLBACKS 1  
 #include <SDL3/SDL.h>
@@ -7,6 +8,7 @@ static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
 static SDL_Surface* surface;
 static Chip8 chip8;
+static bool original;
 
 int scancode_mask(SDL_Scancode scancode) {
     int index;
@@ -52,8 +54,20 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     SDL_Log("CreateRGBSurface failed: %s", SDL_GetError());
     return SDL_APP_FAILURE;
 }
-
-    chip8.load_rom("roms/IBM Logo.ch8");
+    if (argc == 1) {
+        std::cout<<"You must specify the rom path!";
+        return SDL_APP_FAILURE;
+    }
+    chip8.load_rom(argv[1]);
+    if (argc > 2){
+        if (std::string(argv[2]) == "--original"){
+            original = true;
+            std::cout<<"Using original interpretation"<<std::endl;
+            return SDL_APP_CONTINUE; 
+        }
+    }
+    original = false;
+    std::cout<<"Using modern interpretation"<<std::endl;
 
     return SDL_APP_CONTINUE;  
 }
@@ -78,7 +92,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 
 SDL_AppResult SDL_AppIterate(void *appstate)
 {   
-    chip8.cycle();
+    chip8.cycle(original);
 
     chip8.update_surf(surface);
 
