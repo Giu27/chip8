@@ -25,6 +25,7 @@ class Chip8{
         void load_rom(std::string path);
         void set_keypad_value(int index, int val);
         int extract_nibbles(int opcode, int bits, int val_to_binary_and);
-        void cycle(bool original);
+        void cycle(bool original, bool debug);
         void decrement_timers();
+        void print_registers(int x, int y);
 };

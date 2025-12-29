@@ -8,7 +8,8 @@ static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
 static SDL_Surface* surface;
 static Chip8 chip8;
-static bool original;
+static bool original = false;
+static bool debug = false;
 
 const int FPS = 60;
 const int TICK_PER_FRAME = 1000 / FPS;
@@ -47,7 +48,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
         return SDL_APP_FAILURE;
     }
 
-    if (!SDL_CreateWindowAndRenderer("CHIP-8 Interpreter", 640, 480, SDL_WINDOW_RESIZABLE, &window, &renderer)) {
+    if (!SDL_CreateWindowAndRenderer("CHIP-8 Interpreter", 640, 320, SDL_WINDOW_RESIZABLE, &window, &renderer)) {
         SDL_Log("Couldn't create window/renderer: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
@@ -63,15 +64,17 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
         return SDL_APP_FAILURE;
     }
     chip8.load_rom(argv[1]);
-    if (argc > 2){
-        if (std::string(argv[2]) == "--original"){
+    for (int i = 0; i < argc; i++) {
+        if (std::string(argv[i]) == "--original"){
             original = true;
             std::cout<<"Using original interpretation"<<std::endl;
-            return SDL_APP_CONTINUE; 
+        }
+        if (std::string(argv[i]) == "--debug"){
+            debug = true;
+            std::cout<<"Debug mode on"<<std::endl;
         }
     }
-    original = false;
-    std::cout<<"Using modern interpretation"<<std::endl;
+    if (!original) std::cout<<"Using modern interpretation"<<std::endl;
 
     return SDL_APP_CONTINUE;  
 }
@@ -84,6 +87,9 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 
         case SDL_EVENT_KEY_DOWN:
             chip8.set_keypad_value(scancode_mask(event->key.scancode), true);
+            if (debug){
+                chip8.cycle(original, debug);
+            }
             break;
         
         case SDL_EVENT_KEY_UP: 
@@ -97,8 +103,10 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 SDL_AppResult SDL_AppIterate(void *appstate)
 {   
     uint32_t start_tick = SDL_GetTicks();
-    for (int i = 0; i < INSTRUCTIONS_PER_FRAME; i++) {
-       chip8.cycle(original); 
+    if (!debug) {
+        for (int i = 0; i < INSTRUCTIONS_PER_FRAME; i++) {
+            chip8.cycle(original, debug); 
+        }
     }
 
     chip8.decrement_timers();
@@ -128,7 +136,6 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     return SDL_APP_CONTINUE; 
 }
-
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result)
 {

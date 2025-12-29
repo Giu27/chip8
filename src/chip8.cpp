@@ -28,10 +28,23 @@ uint8_t fontset[FONTSET_SIZE] = {
 
 Chip8::Chip8(){
     PC = START_ADDRESS; //Initializes the program counter to read the first instruction
+    sp = 0;
+    I = 0;
+    opcode = 0;
+
+    memset(RAM, 0, sizeof(RAM));
 
     for (int i = 0; i < FONTSET_SIZE; i++){ //Loads the font
         RAM[FONT_START_ADDRESS + i] = fontset[i];
     }
+
+    memset(display, 0, sizeof(display));
+    memset(stack, 0, sizeof(stack));
+    memset(keystate, 0, sizeof(keystate));
+    memset(V, 0, sizeof(V));
+    
+    delay_timer = 0;
+    sound_timer = 0;
 
     srand(time(0));
 }
@@ -73,7 +86,7 @@ int Chip8::extract_nibbles(int opcode, int bits, int val_to_binary_and = 0xFFFF)
     return ((opcode & val_to_binary_and) >> bits);
 }
 
-void Chip8::cycle(bool original = true){
+void Chip8::cycle(bool original = true, bool debug = false){
     opcode = ((uint16_t)RAM[PC] << 8) | RAM[PC + 1];
     int first_nibble = extract_nibbles(opcode, 12, 0xF000);
     int x = extract_nibbles(opcode, 8, 0x0F00); //Look up a register, second nibble
@@ -83,6 +96,11 @@ void Chip8::cycle(bool original = true){
     int nnn = extract_nibbles(opcode, 0, 0x0FFF); //12 bit memory address, second, third and fourth nibble
     PC += 2;
     
+    if (debug) {
+        std::cout<<"Pre"<<std::endl;
+        print_registers(x,y);
+    }
+
     switch(first_nibble){
         case 0x0:
             switch (opcode) {
@@ -90,8 +108,9 @@ void Chip8::cycle(bool original = true){
                     memset(display, 0, sizeof(display));
                     break;
                 case 0x00EE: //return from the subroutine
-                    PC = stack[sp];
                     sp--;
+                    PC = stack[sp];
+                    break;
             }
             break;
         case 0x1: //jump to nnn
@@ -100,6 +119,7 @@ void Chip8::cycle(bool original = true){
         case 0x2: //call a subroutine in nnn
             stack[sp] = PC;
             PC = nnn;
+            sp++;
             break;
         case 0x3: //skip next instruction if Vx = nn
             if (V[x] == nn) {
@@ -116,10 +136,10 @@ void Chip8::cycle(bool original = true){
                 PC += 2;
             }
             break;
-        case 0x6:
+        case 0x6: //set V[x] to nn
             V[x] = nn;
             break;
-        case 0x7:
+        case 0x7: //add nn to V[x] 
             V[x] += nn;
             break;
         case 0x8:
@@ -137,12 +157,14 @@ void Chip8::cycle(bool original = true){
                     V[x] = V[x] ^ V[y];
                     break;
                 case 4: //Add
+                    int carry;
                     if (V[x] + V[y] > 255){
-                        V[0xF] = 1;
+                        carry = 1;
                     } else {
-                        V[0xF] = 0;
+                        carry = 0;
                     }
                     V[x] = V[x] + V[y];
+                    V[0xF] = carry;
                     break;
                 case 5: //Subtract Vy from Vx
                     if (V[x] > V[y]) {
@@ -160,20 +182,26 @@ void Chip8::cycle(bool original = true){
                     }
                     V[x] = V[y] - V[x];
                     break;
-                case 6: //Shifts 1 bit to the right
+                case 6: { //Shifts 1 bit to the right
+                    int lsb = V[x] & 0x1;
                     if (original){
+                        lsb = V[y] & 0x1;
                         V[x] = V[y];
                     }
-                    V[0xF] = V[x] & 0x1;
                     V[x] = V[x] >> 1;
+                    V[0xF] = lsb;
                     break;
-                case 0xE: //Shits 1 bit to the left
+                }
+                case 0xE: { //Shits 1 bit to the left
+                    int msb = (V[x] >> 7);
                     if (original){
+                        msb = (V[y] >> 7);
                         V[x] = V[y];
                     }
-                    V[0xF] = V[x] & 0x1;
                     V[x] = V[x] << 1;
+                    V[0xF] = msb;
                     break;
+                }
                 default:
                     std::cout<<(first_nibble)<<"XY"<<(n)<<std::endl;
                     break;
@@ -204,7 +232,11 @@ void Chip8::cycle(bool original = true){
                 uint8_t sprite_byte = RAM[I + i];
     
                 int x_coord = V[x] & 63; 
-                int y_coord = (V[y] + i) & 31; 
+                int y_coord = (V[y] + i) & 31;
+
+                if (y_coord >= 32){
+                    break;
+                }
 
                 for (int j = 0; j < 8; j++) {
                     if ((sprite_byte & (0x80 >> j)) != 0) {
@@ -272,12 +304,28 @@ void Chip8::cycle(bool original = true){
                     break;
                 }
                 case 0x29: //font character
-                    I = FONT_START_ADDRESS + V[x] * 0x5;
+                    I = FONT_START_ADDRESS + (V[x] * 0x5);
                     break;
                 case 0x33: //binary-coded decimal conversion
                     RAM[I] =  V[x] / 100;
                     RAM[I + 1] = (V[x] / 10) % 10;
-                    RAM[I + 2] = (V[x] % 100) % 10;
+                    RAM[I + 2] = V[x] % 10;
+                    break;
+                case 0x55: //store in memory
+                    for (int i = 0; i <= x; i++) {
+                        RAM[I + i] = V[i];
+                    }
+                    if (original){
+                        I = I + x + 1;
+                    }
+                    break;
+                case 0x65:
+                    for (int i = 0; i <= x; i++) {
+                        V[i] = RAM[I + i];
+                    }
+                    if (original){
+                        I = I + x + 1;
+                    }
                     break;
                 default:
                     std::cout<<(first_nibble)<<"X"<<(nn)<<std::endl;
@@ -288,6 +336,10 @@ void Chip8::cycle(bool original = true){
             std::cout<<"Default";
             break;
     }
+    if (debug) {
+        std::cout<<"Post"<<std::endl;
+        print_registers(x,y);
+    }
 }
 
 void Chip8::decrement_timers() {
@@ -297,4 +349,15 @@ void Chip8::decrement_timers() {
     if (sound_timer > 0) {
         sound_timer--;
     }
+}
+
+void Chip8::print_registers(int x, int y){
+    std::cout<<std::hex<<std::uppercase<<std::showbase;
+    std::cout<<"OPCODE: "<<opcode<<std::endl;
+    std::cout<<"PC: "<<PC<<std::endl;
+    std::cout<<"I: "<<I<<std::endl;
+    std::cout<<"SP: "<<(int)sp<<std::endl;
+    std::cout<<"VX: "<<(int) V[x]<<std::endl;
+    std::cout<<"VY: "<<(int) V[y]<<std::endl;
+    std::cout<<"VF: "<<(int) V[0xF]<<std::endl;
 }
