@@ -67,14 +67,14 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     for (int i = 0; i < argc; i++) {
         if (std::string(argv[i]) == "--original"){
             original = true;
-            std::cout<<"Using original interpretation"<<std::endl;
+            std::cout<<"Using original COSMAC VIP interpretation"<<std::endl;
         }
         if (std::string(argv[i]) == "--debug"){
             debug = true;
             std::cout<<"Debug mode on"<<std::endl;
         }
     }
-    if (!original) std::cout<<"Using modern interpretation"<<std::endl;
+    if (!original) std::cout<<"Using CHIP-48 interpretation"<<std::endl;
 
     return SDL_APP_CONTINUE;  
 }

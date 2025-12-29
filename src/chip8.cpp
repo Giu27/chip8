@@ -149,12 +149,21 @@ void Chip8::cycle(bool original = true, bool debug = false){
                     break;
                 case 1: //Binary Or
                     V[x] = V[x] | V[y];
+                    if (original) {
+                        V[0xF] = 0;
+                    }
                     break;
                 case 2: //Binary And
                     V[x] = V[x] & V[y];
+                    if (original) {
+                        V[0xF] = 0;
+                    }
                     break;
                 case 3: //Binary Xor
                     V[x] = V[x] ^ V[y];
+                    if (original) {
+                        V[0xF] = 0;
+                    }
                     break;
                 case 4: //Add
                     int carry;
@@ -227,31 +236,31 @@ void Chip8::cycle(bool original = true, bool debug = false){
             V[x] = rand() & nn;
             break;
         case 0xD: { //Draws to the screen
+            int x_coord = V[x] & 63; 
+            int y_coord = (V[y]) & 31;
             V[0xF] = 0;
+
             for (int i = 0; i < n; i++) {
                 uint8_t sprite_byte = RAM[I + i];
-    
-                int x_coord = V[x] & 63; 
-                int y_coord = (V[y] + i) & 31;
-
-                if (y_coord >= 32){
-                    break;
-                }
+                x_coord = V[x] & 63;
 
                 for (int j = 0; j < 8; j++) {
                     if ((sprite_byte & (0x80 >> j)) != 0) {
-                        if (x_coord >= 64) {
-                            break; 
-                        }
-
                         if (display[y_coord][x_coord] == true) {
                             display[y_coord][x_coord] = false;
                             V[0xF] = 1; 
                         } else {
                             display[y_coord][x_coord] = true;
                         }
-                }   
-                x_coord++;
+                    }
+                    if (x_coord >= 63) {
+                        break;
+                    }
+                    x_coord++;   
+                }
+                y_coord++;
+                if (y_coord > 31) {
+                    break;
                 }
             }
             break;
