@@ -12,7 +12,7 @@ class Chip8{
         uint16_t stack[16]; //Stack
         uint8_t sp; //stack pointer
 
-        uint8_t delay_timer, sound_timer; //timers
+        uint8_t delay_timer; //delay timer
 
         uint16_t opcode;
 
@@ -20,6 +20,7 @@ class Chip8{
         bool keystate[16]; // hex keypad
     
     public:
+        uint8_t sound_timer;
         Chip8();
         void update_surf(SDL_Surface *surface);
         void load_rom(std::string path);

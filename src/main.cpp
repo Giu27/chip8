@@ -15,6 +15,9 @@ const int FPS = 60;
 const int TICK_PER_FRAME = 1000 / FPS;
 const int INSTRUCTIONS_PER_FRAME = 11;
 
+SDL_AudioSpec spec = {SDL_AUDIO_F32, 1, 44100};
+SDL_AudioStream *stream = NULL;
+
 int scancode_mask(SDL_Scancode scancode) {
     int index;
     switch (scancode) {
@@ -39,11 +42,10 @@ int scancode_mask(SDL_Scancode scancode) {
     return index;
 }
 
-SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
-{
+SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     SDL_SetAppMetadata("CHIP-8 Interpreter", "0.1", "it.Giu27");
 
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
         SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
@@ -56,9 +58,17 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 
     surface = SDL_CreateSurface(64, 32, SDL_PIXELFORMAT_RGBA8888);
     if (!surface) {
-    SDL_Log("CreateRGBSurface failed: %s", SDL_GetError());
+    SDL_Log("CreateSurface failed: %s", SDL_GetError());
     return SDL_APP_FAILURE;
-}
+    }
+
+    stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, NULL, NULL);
+    if (!stream) {
+        SDL_Log("CreateAudioStream failed: %s", SDL_GetError());
+        return SDL_APP_FAILURE;
+    }
+    SDL_ResumeAudioStreamDevice(stream);
+
     if (argc == 1) {
         std::cout<<"You must specify the rom path!";
         return SDL_APP_FAILURE;
@@ -79,8 +89,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     return SDL_APP_CONTINUE;  
 }
 
-SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
-{
+SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     switch (event->type) {
         case SDL_EVENT_QUIT:
             return SDL_APP_SUCCESS;
@@ -99,14 +108,39 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
     return SDL_APP_CONTINUE;  
 }
 
+void fill_audio_buffer(float *buffer, int samples_count, float frequency, int sample_rate) {
+    static float phase = 0;
+    float phase_increment = frequency / sample_rate;
 
-SDL_AppResult SDL_AppIterate(void *appstate)
-{   
+    for(int i = 0; i < samples_count; i++) {
+        if (phase < 0.5) {
+            buffer[i] = 0.2;
+        } else {
+            buffer[i] = -0.2;
+        }
+        phase += phase_increment;
+        if (phase >= 1) {
+            phase -= 1;
+        }
+    }
+}
+
+SDL_AppResult SDL_AppIterate(void *appstate) {   
     uint32_t start_tick = SDL_GetTicks();
     if (!debug) {
         for (int i = 0; i < INSTRUCTIONS_PER_FRAME; i++) {
             chip8.cycle(original, debug); 
         }
+    }
+
+    if (chip8.sound_timer > 0) {
+        int samples_to_feed = spec.freq / 60;
+        float buffer[samples_to_feed];
+
+        fill_audio_buffer(buffer, samples_to_feed, 440, spec.freq);
+        SDL_PutAudioStreamData(stream, buffer, sizeof(buffer));
+    } else {
+        SDL_ClearAudioStream(stream);
     }
 
     chip8.decrement_timers();
@@ -137,7 +171,6 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     return SDL_APP_CONTINUE; 
 }
 
-void SDL_AppQuit(void *appstate, SDL_AppResult result)
-{
+void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     SDL_DestroySurface(surface);
 }
