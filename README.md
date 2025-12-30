@@ -11,3 +11,5 @@ Optionally the --original and the --debug flags are available:
 --original: Use the original COSMAC-VIP Interpretation of the instructions rather than the modern one;
 
 --debug: Enables debug log to the terminal and single stepping.
+
+--speed: Followed by a number, lets youu control the number of cycles per frame

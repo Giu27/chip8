@@ -13,7 +13,7 @@ static bool debug = false;
 
 const int FPS = 60;
 const int TICK_PER_FRAME = 1000 / FPS;
-const int INSTRUCTIONS_PER_FRAME = 11;
+static int instructions_per_frame = 10;
 
 SDL_AudioSpec spec = {SDL_AUDIO_F32, 1, 44100};
 SDL_AudioStream *stream = NULL;
@@ -77,14 +77,22 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     for (int i = 0; i < argc; i++) {
         if (std::string(argv[i]) == "--original"){
             original = true;
-            std::cout<<"Using original COSMAC VIP interpretation"<<std::endl;
+            std::cout<<"Using original COSMAC VIP interpretation\n";
         }
         if (std::string(argv[i]) == "--debug"){
             debug = true;
-            std::cout<<"Debug mode on"<<std::endl;
+            std::cout<<"Debug mode on\n";
+        }
+        if (std::string(argv[i]) == "--speed"){
+            if (i + 1 < argc) {
+                instructions_per_frame = std::stoi(argv[i + 1]); 
+                std::cout<<"Cycles per frame set to: "<<instructions_per_frame<<std::endl;
+            } else {
+                std::cout<<"Missing value, defaulted to 10\n"; 
+            } 
         }
     }
-    if (!original) std::cout<<"Using CHIP-48 interpretation"<<std::endl;
+    if (!original) std::cout<<"Using CHIP-48 interpretation\n";
 
     return SDL_APP_CONTINUE;  
 }
@@ -126,9 +134,10 @@ void fill_audio_buffer(float *buffer, int samples_count, float frequency, int sa
 }
 
 SDL_AppResult SDL_AppIterate(void *appstate) {   
-    uint32_t start_tick = SDL_GetTicks();
+    Uint64 start = SDL_GetPerformanceCounter();
+    Uint64 frequency = SDL_GetPerformanceFrequency();
     if (!debug) {
-        for (int i = 0; i < INSTRUCTIONS_PER_FRAME; i++) {
+        for (int i = 0; i < instructions_per_frame; i++) {
             chip8.cycle(original, debug); 
         }
     }
@@ -163,9 +172,10 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
     SDL_DestroyTexture(texture);
 
-    uint32_t frame_time = SDL_GetTicks() - start_tick;
-    if (frame_time < TICK_PER_FRAME) {
-        SDL_Delay(TICK_PER_FRAME - frame_time);
+    Uint64 end = SDL_GetPerformanceCounter();
+    float elapsedMS = (end - start) / frequency * 1000;
+    if (elapsedMS < TICK_PER_FRAME) {
+        SDL_Delay(TICK_PER_FRAME - elapsedMS);
     }
 
     return SDL_APP_CONTINUE; 
