@@ -175,22 +175,28 @@ void Chip8::cycle(bool original = true, bool debug = false){
                     V[x] = V[x] + V[y];
                     V[0xF] = carry;
                     break;
-                case 5: //Subtract Vy from Vx
-                    if (V[x] > V[y]) {
-                        V[0xF] = 1;
+                case 5: { //Subtract Vy from Vx
+                    int borrow;
+                    if (V[x] >= V[y]) {
+                        borrow = 1;
                     } else {
-                        V[0xF] = 0;
+                        borrow = 0;
                     }
                     V[x] = V[x] - V[y];
+                    V[0xF] = borrow;
                     break;
-                case 7: //Subtract Vx from Vy
-                    if (V[y] > V[x]) {
-                        V[0xF] = 1;
+                }
+                case 7: { //Subtract Vx from Vy
+                    int borrow;
+                    if (V[y] >= V[x]) {
+                        borrow = 1;
                     } else {
-                        V[0xF] = 0;
+                        borrow = 0;
                     }
                     V[x] = V[y] - V[x];
+                    V[0xF] = borrow;
                     break;
+                }
                 case 6: { //Shifts 1 bit to the right
                     int lsb = V[x] & 0x1;
                     if (original){
