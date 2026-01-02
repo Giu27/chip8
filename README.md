@@ -6,7 +6,7 @@ A CHIP-8 Interpreter written in C++ with SDL 3
 
 Build with cmake, requires the rom path as argument.
 
-Optionally the --original and the --debug flags are available:
+Optionally the --original and the --debug flags are available, as well as a speed parameter
 
 --original: Use the original COSMAC-VIP Interpretation of the instructions rather than the modern one;
 

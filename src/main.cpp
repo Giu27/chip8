@@ -1,3 +1,4 @@
+//Copyright (C) 2025  Giuseppe Caruso
 #include <iostream>
 #include <chip8.h>
 #define SDL_MAIN_USE_CALLBACKS 1  

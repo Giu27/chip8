@@ -1,3 +1,4 @@
+//Copyright (C) 2025  Giuseppe Caruso
 #include <chip8.h>
 #include <iostream>
 #include <iomanip>
